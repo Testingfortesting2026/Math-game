@@ -5,80 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Math Game</title>
     <style>
-        /* Styles for the mute button */
-        #muteToggle {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: red;
-            color: white;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-        }
+        /* Add your styles here */
     </style>
 </head>
 <body>
-    <button id="muteToggle">Mute</button>
-    <script>
-        let isMuted = false;
-        const bgMusic = new Audio('path/to/background-music.mp3');
-        const correctSound = new Audio('path/to/correct-answer.mp3');
-        const incorrectSound = new Audio('path/to/incorrect-answer.mp3');
-        const levelUpSound = new Audio('path/to/level-up.mp3');
-        const koSound = new Audio('path/to/KO-sound.mp3');
+    <h1>Welcome to the Math Game!</h1>
+    <div id="game-container">
+        <div id="hero-selection">
+            <h2>Select Your Hero</h2>
+            <!-- Hero selection code goes here -->
+        </div>
+        <div id="combat-area">
+            <h2>Combat</h2>
+            <!-- Combat mechanics code goes here -->
+        </div>
+        <div id="level-up">
+            <h2>Level Up!</h2>
+            <!-- Level up mechanics code goes here -->
+        </div>
+        <button id="mute-toggle">Mute</button>
+    </div>
 
-        // Function to handle audio playback
-        function playSound(sound) {
-            if (!isMuted) {
-                sound.play();
-            }
+    <script>
+        // Web Audio API setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let isMuted = false;
+
+        const correctAnswerSound = new Audio('correct.mp3');
+        const incorrectAnswerSound = new Audio('incorrect.mp3');
+        const levelUpSound = new Audio('levelup.mp3');
+        const koSound = new Audio('ko.mp3');
+
+        function playCorrectAnswerSound() {
+            if (!isMuted) correctAnswerSound.play();
         }
 
-        // Event listeners for the mute button
-        document.getElementById('muteToggle').addEventListener('click', () => {
+        function playIncorrectAnswerSound() {
+            if (!isMuted) incorrectAnswerSound.play();
+        }
+
+        function playLevelUpSound() {
+            if (!isMuted) levelUpSound.play();
+        }
+
+        function playKOSound() {
+            if (!isMuted) koSound.play();
+        }
+
+        document.getElementById('mute-toggle').addEventListener('click', function() {
             isMuted = !isMuted;
-            if (isMuted) {
-                bgMusic.pause();
-                document.getElementById('muteToggle').innerText = 'Unmute';
-            } else {
-                bgMusic.play();
-                document.getElementById('muteToggle').innerText = 'Mute';
-            }
         });
 
-        // Background music loop
-        bgMusic.loop = true;
-        bgMusic.play();
+        // Game logic including hero selection, evolution system, combat goes here
 
-        // Example gameplay functions
-        function answerCorrect() {
-            playSound(correctSound);
-            // Other logic for correct answer
-        }
-
-        function answerIncorrect() {
-            playSound(incorrectSound);
-            // Other logic for incorrect answer
-        }
-
-        function levelUp() {
-            playSound(levelUpSound);
-            // Other logic for leveling up
-        }
-
-        function KO() {
-            playSound(koSound);
-            // Other logic for knockout
-        }
-
-        // Haptic feedback for mobile devices
-        if ('vibrate' in navigator) {
-            // Example vibration on some event
-            function provideHapticFeedback() {
-                navigator.vibrate(100);
-            }
-        }
+        // Event handlers for correct/incorrect answers, level ups, and combat KO events
     </script>
 </body>
 </html>
