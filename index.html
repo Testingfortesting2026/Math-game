@@ -14,10 +14,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Math Hero: Digimon Legend</title>
     
-    <!-- PWA Setup for iPhone/Android Shortcuts -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1hdGggSGVybyIsCiAgInNob3J0X25hbWUiOiAiTWF0aEhlcm8iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhMWExYSIsCiAgInRoZW1lX2NvbG9yIjogIiNmZmNiMDUiCn0=">
 
     <style>
         :root {
@@ -26,81 +24,98 @@
             --hp-green: #70f8a8;
         }
 
-        body { 
-            background: #1a1a1a; color: white; font-family: -apple-system, 'Arial Black', sans-serif; 
-            text-align: center; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; 
-            touch-action: manipulation; -webkit-user-select: none; user-select: none;
+        html, body { 
+            height: 100%; width: 100%; margin: 0; padding: 0; 
+            overflow: hidden; background: #1a1a1a;
+            -webkit-user-select: none; user-select: none;
         }
 
         #game-container { 
             width: 100%; height: 100%; max-width: 1000px; margin: 0 auto; 
             position: relative; background: var(--primary-bg); overflow: hidden; 
             display: flex; flex-direction: column;
+            border: 4px solid #fff; box-sizing: border-box;
         }
 
-        /* 各種畫面容器 */
         .screen { 
             display: none; height: 100%; width: 100%; box-sizing: border-box; 
             flex-direction: column; align-items: center; justify-content: center; 
-            position: absolute; top: 0; left: 0; padding: 20px;
+            position: absolute; top: 0; left: 0; padding: 15px;
             padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* 英雄選擇優化 */
-        .hero-option { 
-            cursor: pointer; background: white; border-radius: 15px; 
-            padding: 10px; width: 25vw; max-width: 100px; height: auto; 
-            border: 4px solid #ffcb05; display: flex; flex-direction: column; 
-            align-items: center; justify-content: space-between; margin: 5px;
-            pointer-events: auto; -webkit-tap-highlight-color: transparent;
+        /* 戰鬥區域：彈性縮放 */
+        #battle-area { 
+            position: relative; flex: 1; width: 100%; 
+            background: linear-gradient(to bottom, #def3ff 50%, #78c850 50%); 
+            overflow: hidden;
         }
-        .hero-option b { color: black; font-size: 14px; margin-top: 5px; pointer-events: none; }
-        .hero-option svg { width: 100%; height: auto; pointer-events: none; }
 
-        /* 戰鬥區域佈局 */
-        #battle-area { position: relative; flex: 1; width: 100%; background: linear-gradient(to bottom, #def3ff 50%, #78c850 50%); }
+        /* UI 操作區：高度百分比化以適應 Android */
+        #ui-area { 
+            width: 100%; height: 28%; max-height: 200px; min-height: 140px;
+            background: var(--ui-bg); border-top: 5px double #000; 
+            display: flex; flex-shrink: 0; box-sizing: border-box;
+        }
 
+        /* 應用題：靈活縮放字體 */
+        #question-box { 
+            flex: 1.2; padding: 10px; color: #000; 
+            /* 隨螢幕高度縮放，最小 14px，最大 22px */
+            font-size: clamp(14px, 3.5vh, 22px); 
+            font-weight: bold; display: flex; align-items: center; 
+            justify-content: center; line-height: 1.3; text-align: center;
+            word-wrap: break-word; overflow: hidden;
+        }
+
+        #ans-grid { 
+            flex: 1; display: grid; grid-template-columns: 1fr 1fr; 
+            grid-template-rows: 1fr 1fr; gap: 6px; padding: 10px; 
+            height: 100%; box-sizing: border-box;
+        }
+
+        .ans-btn { 
+            background: #fff; border: 3px solid #555; 
+            font-size: clamp(18px, 4vh, 28px); 
+            font-weight: bold; cursor: pointer; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            -webkit-appearance: none;
+        }
+
+        /* 狀態與精靈 */
         .status-box { 
-            background: #fffef0; color: #333; padding: 8px; border: 3px solid #444; 
-            position: absolute; width: 35%; max-width: 180px; border-radius: 0 10px 0 10px; 
-            text-align: left; font-size: 12px; z-index: 10;
+            background: #fffef0; color: #333; padding: 6px; border: 3px solid #444; 
+            position: absolute; width: 38%; max-width: 170px; border-radius: 0 10px 0 10px; 
+            text-align: left; font-size: clamp(10px, 2vh, 13px); z-index: 10;
         }
-        #enemy-status { top: 10%; left: 5%; }      
+        #enemy-status { top: 8%; left: 5%; }      
         #player-status { bottom: 5%; right: 5%; } 
 
-        .sprite { position: absolute; z-index: 6; transition: 0.5s; width: 30%; max-width: 200px; }
-        #boss-sprite { top: 15%; right: 10%; }     
-        #hero-sprite { bottom: 0%; left: 10%; }  
+        .sprite { position: absolute; z-index: 6; transition: 0.5s; width: 30%; max-width: 180px; }
+        #boss-sprite { top: 12%; right: 8%; }     
+        #hero-sprite { bottom: 0%; left: 8%; }  
         .sprite svg { width: 100%; height: auto; }
 
-        /* 底部操作區 */
-        #ui-area { 
-            width: 100%; height: 25vh; max-height: 180px;
-            background: var(--ui-bg); border-top: 5px double #000; 
-            display: flex; box-sizing: border-box;
+        .hero-option { 
+            cursor: pointer; background: white; border-radius: 12px; 
+            padding: 8px; width: 25vw; max-width: 90px; border: 3px solid #ffcb05; 
+            display: flex; flex-direction: column; align-items: center; margin: 5px;
         }
-        #question-box { 
-            flex: 1.2; padding: 10px; color: #000; font-size: 4.5vw; max-font-size: 24px;
-            font-weight: bold; display: flex; align-items: center; justify-content: center; line-height: 1.2;
-        }
-        #ans-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
-        .ans-btn { background: #fff; border: 3px solid #555; font-size: 26px; font-weight: bold; cursor: pointer; border-radius: 12px; -webkit-appearance: none; }
+        .hero-option svg { width: 100%; height: auto; }
 
-        /* 標籤與特效 */
-        #combo-tag { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); font-size: 32px; color: #ffcb05; text-shadow: 2px 2px #000; z-index: 100; display: none; }
-        #ultimate-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ff4500; color: white; border: 4px solid white; border-radius: 50px; font-size: 20px; font-weight: bold; padding: 15px 30px; cursor: pointer; display: none; z-index: 101; animation: pulse 0.5s infinite; }
+        #combo-tag { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); font-size: clamp(22px, 5vh, 36px); color: #ffcb05; text-shadow: 2px 2px #000; z-index: 100; display: none; }
+        #ultimate-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ff4500; color: white; border: 4px solid white; border-radius: 50px; font-size: 18px; font-weight: bold; padding: 12px 24px; cursor: pointer; display: none; z-index: 101; animation: pulse 0.5s infinite; }
         
-        .btn-style { padding: 12px 24px; font-size: 20px; cursor: pointer; background: #ffcb05; border: 4px solid white; margin: 8px; font-weight: bold; border-radius: 15px; color: black; -webkit-appearance: none; }
-        .hp-bar-bg { background: #444; height: 10px; border-radius: 10px; margin-top: 4px; overflow: hidden; border: 1px solid #000; }
+        .btn-style { padding: 10px 20px; font-size: clamp(16px, 3vh, 20px); cursor: pointer; background: #ffcb05; border: 3px solid white; margin: 5px; font-weight: bold; border-radius: 12px; color: black; }
+        .hp-bar-bg { background: #444; height: 8px; border-radius: 10px; margin-top: 3px; overflow: hidden; border: 1px solid #000; }
         .hp-fill { height: 100%; width: 100%; background: var(--hp-green); transition: 0.5s; }
 
         @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.1); } }
         .evo-flash-anim { animation: flash-white 0.1s infinite; }
         @keyframes flash-white { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-        .defeat-anim { transform: translateY(100px) rotate(30deg) !important; opacity: 0 !important; }
+        .defeat-anim { transform: translateY(80px) rotate(25deg) !important; opacity: 0 !important; }
         .hit-boss { animation: shake 0.2s; filter: brightness(2) saturate(5); }
-        @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(6px,6px); } 75% { transform: translate(-6px,-6px); } }
+        @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(5px,5px); } 75% { transform: translate(-5px,-5px); } }
     </style>
 </head>
 <body>
@@ -109,62 +124,41 @@
     <div id="combo-tag">Combo x0</div>
     <button id="ultimate-btn" onclick="useUltimate()">🔥 ULTIMATE 🔥</button>
 
-    <!-- 1. Selection Screen -->
     <div id="selection-screen" class="screen" style="display: flex;">
-        <h1 style="color:#ffcb05; font-size: 10vw; margin: 0 0 10px 0;">MATH HERO</h1>
-        <input type="text" id="p-name-in" style="padding:12px; font-size:18px; border-radius:10px; margin-bottom:20px; width: 70%; border:3px solid #333;" placeholder="ENTER NAME...">
+        <h1 style="color:#ffcb05; font-size: clamp(28px, 8vh, 45px); margin: 0 0 10px 0;">MATH HERO</h1>
+        <input type="text" id="p-name-in" style="padding:10px; font-size:16px; border-radius:8px; margin-bottom:15px; width: 70%; border:2px solid #333;" placeholder="NAME...">
         <div style="display:flex; justify-content: center; width: 100%;">
-            <div class="hero-option" onclick="selectHero('pichu')">
-                <svg viewBox="0 0 100 100" style="transform:scale(0.8)"><circle cx="50" cy="50" r="35" fill="#f8e65e"/><circle cx="35" cy="45" r="4"/><circle cx="65" cy="45" r="4"/></svg>
-                <b>PICHU</b>
-            </div>
-            <div class="hero-option" onclick="selectHero('eevee')">
-                <svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="35" ry="30" fill="#a67c52"/><circle cx="40" cy="50" r="4"/><circle cx="60" cy="50" r="4"/></svg>
-                <b>EEVEE</b>
-            </div>
-            <div class="hero-option" onclick="selectHero('gastly')">
-                <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="#4a148c"/><circle cx="40" cy="45" r="4" fill="white"/><circle cx="60" cy="45" r="4" fill="white"/></svg>
-                <b>GASTLY</b>
-            </div>
+            <div class="hero-option" onclick="selectHero('pichu')"><svg viewBox="0 0 100 100" style="transform:scale(0.8)"><circle cx="50" cy="50" r="35" fill="#f8e65e"/><circle cx="35" cy="45" r="4"/><circle cx="65" cy="45" r="4"/></svg><b>PICHU</b></div>
+            <div class="hero-option" onclick="selectHero('eevee')"><svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="35" ry="30" fill="#a67c52"/><circle cx="40" cy="50" r="4"/><circle cx="60" cy="50" r="4"/></svg><b>EEVEE</b></div>
+            <div class="hero-option" onclick="selectHero('gastly')"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="#4a148c"/><circle cx="40" cy="45" r="4" fill="white"/><circle cx="60" cy="45" r="4" fill="white"/></svg><b>GASTLY</b></div>
         </div>
     </div>
 
-    <!-- 2. Levels -->
     <div id="level-screen" class="screen">
-        <h1 style="color:white; margin-bottom: 20px;">DIFFICULTY</h1>
+        <h1 style="color:white; margin-bottom: 15px;">DIFFICULTY</h1>
         <button class="btn-style" onclick="startGame(20)">ROOKIE (0-20)</button>
         <button class="btn-style" onclick="startGame(40)">ELITE (0-40)</button>
         <button class="btn-style" onclick="startGame(100)">LEGEND (0-100)</button>
     </div>
 
-    <!-- 3. Battle Screen Structure -->
-    <div id="battle-screen" class="screen" style="padding: 0; overflow: hidden;">
+    <div id="battle-screen" class="screen" style="padding: 0;">
         <div id="battle-area">
-            <button class="btn-style" style="position:absolute; top:10px; right:10px; font-size:12px; padding:8px; z-index:100; margin:0;" onclick="location.reload()">QUIT</button>
-            
+            <button class="btn-style" style="position:absolute; top:8px; right:8px; font-size:11px; padding:6px; z-index:100; margin:0;" onclick="location.reload()">QUIT</button>
             <div id="enemy-status" class="status-box"><b id="boss-name-tag">BOSS</b><div class="hp-bar-bg"><div id="boss-hp" class="hp-fill"></div></div></div>
             <div id="boss-sprite" class="sprite"></div>
-            
             <div id="player-status" class="status-box"><b id="display-name">HERO</b><div class="hp-bar-bg"><div id="hero-hp" class="hp-fill"></div></div></div>
             <div id="hero-sprite" class="sprite"></div>
         </div>
-        
         <div id="ui-area">
             <div id="question-box">?</div>
-            <div id="ans-grid">
-                <button class="ans-btn" onclick="checkAns(this)"></button>
-                <button class="ans-btn" onclick="checkAns(this)"></button>
-                <button class="ans-btn" onclick="checkAns(this)"></button>
-                <button class="ans-btn" onclick="checkAns(this)"></button>
-            </div>
+            <div id="ans-grid"><button class="ans-btn" onclick="checkAns(this)"></button><button class="ans-btn" onclick="checkAns(this)"></button><button class="ans-btn" onclick="checkAns(this)"></button><button class="ans-btn" onclick="checkAns(this)"></button></div>
         </div>
     </div>
 
-    <!-- Other Screens -->
-    <div id="victory-screen" class="screen"><h1 style="color:#70f8a8; font-size: 50px;">VICTORY!</h1><button class="btn-style" onclick="nextRound()">KEEP GOING</button><button class="btn-style" onclick="location.reload()">MENU</button></div>
-    <div id="defeat-screen" class="screen"><h1 style="color:#ff4d4d; font-size: 40px;">DEFEATED!</h1><button class="btn-style" onclick="resetBattle(); document.getElementById('defeat-screen').style.display='none';">RETRY</button><button class="btn-style" onclick="location.reload()">MENU</button></div>
+    <div id="victory-screen" class="screen"><h1>VICTORY!</h1><button class="btn-style" onclick="nextRound()">KEEP GOING</button><button class="btn-style" onclick="location.reload()">MENU</button></div>
+    <div id="defeat-screen" class="screen"><h1>DEFEATED!</h1><button class="btn-style" onclick="resetBattle(); document.getElementById('defeat-screen').style.display='none';">RETRY</button><button class="btn-style" onclick="location.reload()">MENU</button></div>
     <div id="stone-screen" class="screen"><h1 style="color:gold">EVOLUTION CHOICE</h1><button class="btn-style" onclick="evolveEevee('flareon')">FIRE</button><button class="btn-style" onclick="evolveEevee('jolteon')">THUNDER</button><button class="btn-style" onclick="evolveEevee('vaporeon')">WATER</button></div>
-    <div id="evolving-screen" class="screen"><h1 id="evo-text">EVOLVING...</h1><div id="evo-hero-display" class="sprite" style="position:relative; margin:auto; width:200px; height:200px;"></div></div>
+    <div id="evolving-screen" class="screen"><h1 id="evo-text">EVOLVING...</h1><div id="evo-hero-display" class="sprite" style="position:relative; margin:auto; width:180px; height:180px;"></div></div>
 </div>
 
 <script>
@@ -184,7 +178,7 @@ const SVGs = {
 
 let p = { name: "CHALLENGER", hp: 100, wins: 0, combo: 0, ulti: 0, hero: 'pichu' };
 let e = { hp: 100 };
-let ans = 0, diff = 20;
+let ans = 0, diffLimit = 20;
 
 function selectHero(h) { 
     p.hero = h; 
@@ -195,17 +189,17 @@ function selectHero(h) {
     document.getElementById('level-screen').style.display = 'flex'; 
 }
 
-function startGame(d) { diff = d; document.getElementById('level-screen').style.display = 'none'; document.getElementById('battle-screen').style.display = 'flex'; resetBattle(); }
+function startGame(d) { diffLimit = d; document.getElementById('level-screen').style.display = 'none'; document.getElementById('battle-screen').style.display = 'flex'; resetBattle(); }
 
 function generate() {
-    let a = Math.floor(Math.random() * (diff/2 + 1)), b = Math.floor(Math.random() * (diff/2 + 1));
+    let a = Math.floor(Math.random() * (diffLimit/2 + 1)), b = Math.floor(Math.random() * (diffLimit/2 + 1));
     let op = Math.random() > 0.5 ? '+' : '-';
     if(op === '-' && a < b) [a, b] = [b, a];
     ans = op === '+' ? a + b : a - b;
     let isW = Math.random() > 0.7;
     if(isW) {
-        let action = (op === '+') ? "gained" : "lost";
-        document.getElementById('question-box').innerText = `Hero has ${a} gems and ${action} ${b}. Total?`;
+        let act = (op === '+') ? "gained" : "lost";
+        document.getElementById('question-box').innerText = `Hero had ${a} items and ${act} ${b}. Total?`;
     } else {
         document.getElementById('question-box').innerText = `${a} ${op} ${b} = ?`;
     }
@@ -262,6 +256,5 @@ function triggerEvo(newH) {
 function evolveEevee(stone) { document.getElementById('stone-screen').style.display = 'none'; triggerEvo(stone); }
 function resetBattle() { p.hp = 100; e.hp = 100; document.querySelectorAll('.sprite').forEach(s => s.classList.remove('defeat-anim')); updateUI(); generate(); }
 </script>
-
 </body>
 </html>
