@@ -14,13 +14,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Math Hero: Digimon Legend</title>
     
-    <!-- iPhone PWA 模式設定 -->
+    <!-- PWA Setup for iPhone/Android Shortcuts -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://via.placeholder.com">
+    <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1hdGggSGVybyIsCiAgInNob3J0X25hbWUiOiAiTWF0aEhlcm8iLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzFhMWExYSIsCiAgInRoZW1lX2NvbG9yIjogIiNmZmNiMDUiCn0=">
 
     <style>
-        /* 基礎佈局：自適應螢幕 */
+        :root {
+            --primary-bg: #def3ff;
+            --ui-bg: #f8f8f8;
+            --hp-green: #70f8a8;
+        }
+
         body { 
             background: #1a1a1a; color: white; font-family: -apple-system, 'Arial Black', sans-serif; 
             text-align: center; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; 
@@ -28,62 +33,69 @@
         }
 
         #game-container { 
-            width: 100%; height: 100%; max-width: 1000px; max-height: 800px;
-            margin: 0 auto; position: relative; background: #def3ff; overflow: hidden; 
-            box-sizing: border-box; border: 4px solid #fff;
+            width: 100%; height: 100%; max-width: 1000px; margin: 0 auto; 
+            position: relative; background: var(--primary-bg); overflow: hidden; 
+            display: flex; flex-direction: column;
         }
 
+        /* 各種畫面容器 */
         .screen { 
-            display: none; padding: 20px; height: 100%; width: 100%;
-            box-sizing: border-box; flex-direction: column; align-items: center; 
-            justify-content: center; position: absolute; top: 0; left: 0; 
+            display: none; height: 100%; width: 100%; box-sizing: border-box; 
+            flex-direction: column; align-items: center; justify-content: center; 
+            position: absolute; top: 0; left: 0; padding: 20px;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* 英雄選擇：iPhone 點擊優化 */
+        /* 英雄選擇優化 */
         .hero-option { 
             cursor: pointer; background: white; border-radius: 15px; 
-            padding: 10px; width: 95px; height: 130px; border: 4px solid #ffcb05;
-            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            -webkit-tap-highlight-color: transparent; pointer-events: auto;
+            padding: 10px; width: 25vw; max-width: 100px; height: auto; 
+            border: 4px solid #ffcb05; display: flex; flex-direction: column; 
+            align-items: center; justify-content: space-between; margin: 5px;
+            pointer-events: auto; -webkit-tap-highlight-color: transparent;
         }
-        .hero-option b { color: black; font-size: 14px; pointer-events: none; }
-        .hero-option svg { width: 70px; height: 70px; pointer-events: none; }
+        .hero-option b { color: black; font-size: 14px; margin-top: 5px; pointer-events: none; }
+        .hero-option svg { width: 100%; height: auto; pointer-events: none; }
 
-        /* 戰鬥 UI：位置與大小自適應 */
+        /* 戰鬥區域佈局 */
+        #battle-area { position: relative; flex: 1; width: 100%; background: linear-gradient(to bottom, #def3ff 50%, #78c850 50%); }
+
         .status-box { 
             background: #fffef0; color: #333; padding: 8px; border: 3px solid #444; 
-            position: absolute; width: 40%; max-width: 180px; border-radius: 0 10px 0 10px; 
-            text-align: left; z-index: 10; font-size: 14px; 
+            position: absolute; width: 35%; max-width: 180px; border-radius: 0 10px 0 10px; 
+            text-align: left; font-size: 12px; z-index: 10;
         }
-        #enemy-status { top: 5%; left: 5%; }      
-        #player-status { bottom: 25%; right: 5%; } 
+        #enemy-status { top: 10%; left: 5%; }      
+        #player-status { bottom: 5%; right: 5%; } 
 
-        .sprite { position: absolute; z-index: 6; transition: 0.5s; width: 35%; max-width: 220px; }
-        #boss-sprite { top: 8%; right: 8%; }     
-        #hero-sprite { bottom: 22%; left: 8%; }  
-        .sprite svg { width: 100%; height: 100%; }
+        .sprite { position: absolute; z-index: 6; transition: 0.5s; width: 30%; max-width: 200px; }
+        #boss-sprite { top: 15%; right: 10%; }     
+        #hero-sprite { bottom: 0%; left: 10%; }  
+        .sprite svg { width: 100%; height: auto; }
 
-        /* 底部答題區：加大按鈕方便孩子點擊 */
+        /* 底部操作區 */
         #ui-area { 
-            position: absolute; bottom: 0; width: 100%; height: 22vh; max-height: 160px;
-            background: #f8f8f8; border-top: 5px double #000; display: flex; z-index: 10; 
+            width: 100%; height: 25vh; max-height: 180px;
+            background: var(--ui-bg); border-top: 5px double #000; 
+            display: flex; box-sizing: border-box;
         }
         #question-box { 
-            width: 50%; padding: 10px; color: #000; font-size: 4.5vw; max-font-size: 24px;
-            font-weight: bold; display: flex; align-items: center; justify-content: center; 
+            flex: 1.2; padding: 10px; color: #000; font-size: 4.5vw; max-font-size: 24px;
+            font-weight: bold; display: flex; align-items: center; justify-content: center; line-height: 1.2;
         }
-        #ans-grid { width: 50%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
-        .ans-btn { background: #fff; border: 3px solid #555; font-size: 28px; font-weight: bold; cursor: pointer; border-radius: 12px; -webkit-appearance: none; }
+        #ans-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+        .ans-btn { background: #fff; border: 3px solid #555; font-size: 26px; font-weight: bold; cursor: pointer; border-radius: 12px; -webkit-appearance: none; }
 
-        /* 特效與標籤 */
-        #combo-tag { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); font-size: 32px; color: #ffcb05; text-shadow: 2px 2px #000; z-index: 100; display: none; }
-        #ultimate-btn { position: absolute; bottom: 24%; left: 50%; transform: translateX(-50%); background: #ff4500; color: white; border: 4px solid white; border-radius: 50px; font-size: 18px; font-weight: bold; padding: 12px 24px; cursor: pointer; display: none; z-index: 101; animation: pulse 0.5s infinite; }
+        /* 標籤與特效 */
+        #combo-tag { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); font-size: 32px; color: #ffcb05; text-shadow: 2px 2px #000; z-index: 100; display: none; }
+        #ultimate-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ff4500; color: white; border: 4px solid white; border-radius: 50px; font-size: 20px; font-weight: bold; padding: 15px 30px; cursor: pointer; display: none; z-index: 101; animation: pulse 0.5s infinite; }
         
         .btn-style { padding: 12px 24px; font-size: 20px; cursor: pointer; background: #ffcb05; border: 4px solid white; margin: 8px; font-weight: bold; border-radius: 15px; color: black; -webkit-appearance: none; }
-        .hp-bar-bg { background: #444; height: 12px; border-radius: 10px; margin-top: 4px; overflow: hidden; border: 1px solid #000; }
-        .hp-fill { height: 100%; width: 100%; background: #70f8a8; transition: 0.5s; }
+        .hp-bar-bg { background: #444; height: 10px; border-radius: 10px; margin-top: 4px; overflow: hidden; border: 1px solid #000; }
+        .hp-fill { height: 100%; width: 100%; background: var(--hp-green); transition: 0.5s; }
 
-        @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); } }
+        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -50%) scale(1.1); } }
         .evo-flash-anim { animation: flash-white 0.1s infinite; }
         @keyframes flash-white { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
         .defeat-anim { transform: translateY(100px) rotate(30deg) !important; opacity: 0 !important; }
@@ -99,9 +111,9 @@
 
     <!-- 1. Selection Screen -->
     <div id="selection-screen" class="screen" style="display: flex;">
-        <h1 style="color:#ffcb05; margin-bottom:10px; font-size: 8vw;">MATH HERO</h1>
+        <h1 style="color:#ffcb05; font-size: 10vw; margin: 0 0 10px 0;">MATH HERO</h1>
         <input type="text" id="p-name-in" style="padding:12px; font-size:18px; border-radius:10px; margin-bottom:20px; width: 70%; border:3px solid #333;" placeholder="ENTER NAME...">
-        <div style="display:flex; gap:12px;">
+        <div style="display:flex; justify-content: center; width: 100%;">
             <div class="hero-option" onclick="selectHero('pichu')">
                 <svg viewBox="0 0 100 100" style="transform:scale(0.8)"><circle cx="50" cy="50" r="35" fill="#f8e65e"/><circle cx="35" cy="45" r="4"/><circle cx="65" cy="45" r="4"/></svg>
                 <b>PICHU</b>
@@ -119,19 +131,24 @@
 
     <!-- 2. Levels -->
     <div id="level-screen" class="screen">
-        <h1 style="color:white">DIFFICULTY</h1>
+        <h1 style="color:white; margin-bottom: 20px;">DIFFICULTY</h1>
         <button class="btn-style" onclick="startGame(20)">ROOKIE (0-20)</button>
         <button class="btn-style" onclick="startGame(40)">ELITE (0-40)</button>
         <button class="btn-style" onclick="startGame(100)">LEGEND (0-100)</button>
     </div>
 
-    <!-- 3. Battle -->
-    <div id="battle-screen" class="screen">
-        <button class="btn-style" style="position:absolute; top:10px; right:10px; font-size:12px; padding:8px; z-index:100;" onclick="location.reload()">QUIT</button>
-        <div id="enemy-status" class="status-box"><b id="boss-name-tag">BOSS</b><div class="hp-bar-bg"><div id="boss-hp" class="hp-fill"></div></div></div>
-        <div id="boss-sprite" class="sprite"></div>
-        <div id="player-status" class="status-box"><b id="display-name">HERO</b><div class="hp-bar-bg"><div id="hero-hp" class="hp-fill"></div></div></div>
-        <div id="hero-sprite" class="sprite"></div>
+    <!-- 3. Battle Screen Structure -->
+    <div id="battle-screen" class="screen" style="padding: 0; overflow: hidden;">
+        <div id="battle-area">
+            <button class="btn-style" style="position:absolute; top:10px; right:10px; font-size:12px; padding:8px; z-index:100; margin:0;" onclick="location.reload()">QUIT</button>
+            
+            <div id="enemy-status" class="status-box"><b id="boss-name-tag">BOSS</b><div class="hp-bar-bg"><div id="boss-hp" class="hp-fill"></div></div></div>
+            <div id="boss-sprite" class="sprite"></div>
+            
+            <div id="player-status" class="status-box"><b id="display-name">HERO</b><div class="hp-bar-bg"><div id="hero-hp" class="hp-fill"></div></div></div>
+            <div id="hero-sprite" class="sprite"></div>
+        </div>
+        
         <div id="ui-area">
             <div id="question-box">?</div>
             <div id="ans-grid">
@@ -143,38 +160,16 @@
         </div>
     </div>
 
-    <!-- 4. Victory -->
-    <div id="victory-screen" class="screen">
-        <h1 style="color:#70f8a8; font-size: 50px;">VICTORY!</h1>
-        <button class="btn-style" onclick="nextRound()">KEEP GOING</button>
-        <button class="btn-style" onclick="location.reload()">MENU</button>
-    </div>
-
-    <!-- 5. Defeat -->
-    <div id="defeat-screen" class="screen">
-        <h1 style="color:#ff4d4d; font-size: 40px;">DEFEATED!</h1>
-        <button class="btn-style" onclick="resetBattle(); document.getElementById('defeat-screen').style.display='none';">RETRY</button>
-        <button class="btn-style" onclick="location.reload()">MENU</button>
-    </div>
-
-    <!-- 6. Evolution Stone -->
-    <div id="stone-screen" class="screen">
-        <h1 style="color:gold">EVOLUTION CHOICE</h1>
-        <button class="btn-style" onclick="evolveEevee('flareon')">FIRE STONE</button>
-        <button class="btn-style" onclick="evolveEevee('jolteon')">THUNDER STONE</button>
-        <button class="btn-style" onclick="evolveEevee('vaporeon')">WATER STONE</button>
-    </div>
-
-    <!-- 7. Evolving -->
-    <div id="evolving-screen" class="screen">
-        <h1 id="evo-text">EVOLVING...</h1>
-        <div id="evo-hero-display" class="sprite" style="position:relative; margin:auto; width:220px; height:220px;"></div>
-    </div>
+    <!-- Other Screens -->
+    <div id="victory-screen" class="screen"><h1 style="color:#70f8a8; font-size: 50px;">VICTORY!</h1><button class="btn-style" onclick="nextRound()">KEEP GOING</button><button class="btn-style" onclick="location.reload()">MENU</button></div>
+    <div id="defeat-screen" class="screen"><h1 style="color:#ff4d4d; font-size: 40px;">DEFEATED!</h1><button class="btn-style" onclick="resetBattle(); document.getElementById('defeat-screen').style.display='none';">RETRY</button><button class="btn-style" onclick="location.reload()">MENU</button></div>
+    <div id="stone-screen" class="screen"><h1 style="color:gold">EVOLUTION CHOICE</h1><button class="btn-style" onclick="evolveEevee('flareon')">FIRE</button><button class="btn-style" onclick="evolveEevee('jolteon')">THUNDER</button><button class="btn-style" onclick="evolveEevee('vaporeon')">WATER</button></div>
+    <div id="evolving-screen" class="screen"><h1 id="evo-text">EVOLVING...</h1><div id="evo-hero-display" class="sprite" style="position:relative; margin:auto; width:200px; height:200px;"></div></div>
 </div>
 
 <script>
 const SVGs = {
-    pichu: `<svg viewBox="0 0 100 100" style="transform:scale(0.8)"><circle cx="50" cy="50" r="35" fill="#f8e65e"/><circle cx="35" cy="45" r="4"/><circle cx="65" cy="45" r="4"/></svg>`,
+    pichu: `<svg viewBox="0 0 100 100" style="transform:scale(0.85)"><circle cx="50" cy="50" r="35" fill="#f8e65e"/><circle cx="35" cy="45" r="4"/><circle cx="65" cy="45" r="4"/></svg>`,
     pikachu: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="#ffd700"/><circle cx="30" cy="45" r="5"/><circle cx="70" cy="45" r="5"/><circle cx="22" cy="65" r="8" fill="red"/><circle cx="78" cy="65" r="8" fill="red"/></svg>`,
     raichu: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#e67e22"/><circle cx="35" cy="45" r="6"/><circle cx="65" cy="45" r="6"/><circle cx="20" cy="65" r="10" fill="#f1c40f"/></svg>`,
     eevee: `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="35" ry="30" fill="#a67c52"/><circle cx="40" cy="50" r="4"/><circle cx="60" cy="50" r="4"/></svg>`,
@@ -207,15 +202,13 @@ function generate() {
     let op = Math.random() > 0.5 ? '+' : '-';
     if(op === '-' && a < b) [a, b] = [b, a];
     ans = op === '+' ? a + b : a - b;
-    
     let isW = Math.random() > 0.7;
     if(isW) {
         let action = (op === '+') ? "gained" : "lost";
-        document.getElementById('question-box').innerText = `Hero had ${a} gems and ${action} ${b}. Total?`;
+        document.getElementById('question-box').innerText = `Hero has ${a} gems and ${action} ${b}. Total?`;
     } else {
         document.getElementById('question-box').innerText = `${a} ${op} ${b} = ?`;
     }
-
     let s = new Set([ans]);
     while(s.size < 4) { let w = ans + Math.floor(Math.random()*11)-5; if(w>=0 && w!==ans) s.add(w); }
     let v = Array.from(s).sort(() => Math.random() - 0.5);
@@ -239,7 +232,7 @@ function handleDeath() {
 }
 
 function updateUI() {
-    document.getElementById('hero-hp').style.width = Math.max(0, p.hp) + "%";
+    document.getElementById('hero-hp').style.width = p.hp + "%";
     document.getElementById('boss-hp').style.width = Math.max(0, e.hp) + "%";
     document.getElementById('hero-sprite').innerHTML = SVGs[p.hero];
     document.getElementById('boss-sprite').innerHTML = SVGs.boss;
@@ -269,5 +262,6 @@ function triggerEvo(newH) {
 function evolveEevee(stone) { document.getElementById('stone-screen').style.display = 'none'; triggerEvo(stone); }
 function resetBattle() { p.hp = 100; e.hp = 100; document.querySelectorAll('.sprite').forEach(s => s.classList.remove('defeat-anim')); updateUI(); generate(); }
 </script>
+
 </body>
 </html>
